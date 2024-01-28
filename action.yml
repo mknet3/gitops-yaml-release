@@ -1,0 +1,59 @@
+name: GitOps YAML Release
+
+inputs:
+  target_repository:
+    description: 'Target repository name'
+    required: true
+    type: string
+  target_property:
+    description: 'Target property to update'
+    required: true
+    type: string
+  value:
+    description: 'Value to set'
+    required: true
+    type: string
+  file_path:
+    description: 'File path to update'
+    required: true
+    type: string
+  commit_message:
+    description: 'Commit message'
+    required: true
+    type: string
+  gh_token:
+    description: 'GitHub token'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+  - name: Setup Python
+    uses: actions/setup-python@v2
+    with:
+      python-version: '3.x'
+
+  - name: Install yq
+    run: pip install yq
+
+  - name: Clone Target Repository
+    env:
+      GH_TOKEN: ${{ inputs.gh_token }}
+    run: |
+      gh repo clone ${{ github.repository_owner }}/${{ inputs.target_repository }}
+
+  - name: Set foobar to cool
+    uses: mikefarah/yq@master
+    with:
+      cmd: yq -i '.${{ inputs.target_property }} = ${{ inputs.value }}' './${{ inputs.target_repository }}/${{ inputs.file_path }}'
+
+  - name: Commit and Push Changes
+    env:
+      GH_TOKEN: ${{ inputs.gh_token }}
+    run: |
+      cd ./${{ inputs.target_repository }}
+      git config --global user.name 'github-actions[bot]'
+      git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      git add ./${{ inputs.file_path }}
+      git commit -m "${{ inputs.commit_message }}"
+      git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository_owner }}/${{ inputs.target_repository }}.git HEAD:main
