@@ -34,11 +34,13 @@ runs:
       python-version: '3.x'
 
   - name: Install yq
+    shell: bash
     run: pip install yq
 
   - name: Clone Target Repository
     env:
       GH_TOKEN: ${{ inputs.gh_token }}
+    shell: bash
     run: |
       gh repo clone ${{ github.repository_owner }}/${{ inputs.target_repository }}
 
@@ -48,6 +50,7 @@ runs:
       cmd: yq -i '.${{ inputs.target_property }} = ${{ inputs.value }}' './${{ inputs.target_repository }}/${{ inputs.file_path }}'
 
   - name: Commit and Push Changes
+    shell: bash
     env:
       GH_TOKEN: ${{ inputs.gh_token }}
     run: |
