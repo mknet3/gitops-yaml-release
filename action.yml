@@ -9,6 +9,10 @@ inputs:
     description: 'Target property to update'
     required: true
     type: string
+  target_branch:
+    description: 'Target branch'
+    required: false
+    default: 'main'
   value:
     description: 'Value to set'
     required: true
@@ -19,11 +23,12 @@ inputs:
     type: string
   commit_message:
     description: 'Commit message'
-    required: true
+    required: false
     type: string
   gh_token:
     description: 'GitHub token'
     required: true
+    type: string
 
 runs:
   using: "composite"
@@ -31,11 +36,11 @@ runs:
   - name: Setup Python
     uses: actions/setup-python@v2
     with:
-      python-version: '3.x'
+      python-version: '3.12.1'
 
   - name: Install yq
     shell: bash
-    run: pip install yq
+    run: pip install yq==3.2.3
 
   - name: Clone Target Repository
     env:
@@ -58,5 +63,9 @@ runs:
       git config --global user.name 'github-actions[bot]'
       git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
       git add ./${{ inputs.file_path }}
-      git commit -m "${{ inputs.commit_message }}"
+      commit_message=${{ inputs.commit_message }}
+      if [ -z "$commit_message" ]; then
+        commit_message="feat: update ${{ inputs.target_property }} to ${{ inputs.value }}"
+      fi
+      git commit -m "$commit_message"
       git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository_owner }}/${{ inputs.target_repository }}.git HEAD:main
