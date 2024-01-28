@@ -68,4 +68,4 @@ runs:
         commit_message="feat: update ${{ inputs.target_property }} to ${{ inputs.value }}"
       fi
       git commit -m "$commit_message"
-      git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository_owner }}/${{ inputs.target_repository }}.git HEAD:main
+      git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository_owner }}/${{ inputs.target_repository }}.git HEAD:${{ inputs.target_branch }}
