@@ -65,7 +65,29 @@ runs:
       git add ./${{ inputs.file_path }}
       commit_message=${{ inputs.commit_message }}
       if [ -z "$commit_message" ]; then
-        commit_message="feat: update ${{ inputs.target_property }} to ${{ inputs.value }}"
+          COMMIT_MESSAGE="feat: update ${{ inputs.target_property }} to ${{ inputs.value }}"
       fi
-      git commit -m "$commit_message"
-      git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository_owner }}/${{ inputs.target_repository }}.git HEAD:${{ inputs.target_branch }}
+      
+      # Retry logic
+      MAX_RETRIES=3
+      RETRY_COUNT=0
+      SUCCESS=0
+      
+      while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          git fetch origin ${{ inputs.target_branch }}
+          git reset --soft FETCH_HEAD
+          git commit -m "$COMMIT_MESSAGE" --allow-empty
+          # Attempt to rebase your changes on top of the latest changes from remote
+          if git rebase origin/${{ inputs.target_branch }}; then
+              # Push if rebase was successful
+              if git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository_owner }}/${{ inputs.target_repository }}.git HEAD:${{ inputs.target_branch }}; then
+                  exit 0
+              fi
+          fi
+          RETRY_COUNT=$((RETRY_COUNT+1))
+          echo "Attempt $RETRY_COUNT of $MAX_RETRIES failed. Retrying in 5 seconds..."
+          sleep 5
+      done
+      
+      echo "Operation failed after $MAX_RETRIES attempts."
+      exit 1
